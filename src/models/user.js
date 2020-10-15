@@ -47,29 +47,35 @@ const userSchema = new mongoose.Schema({
             type: String,
             required: true
         }
-    }]
+    }],
+    avatar: {
+        type: Buffer
+    }
+}, {
+    timestamps: true
 })
 
-// virtual elation between two entities
 userSchema.virtual('tasks', {
     ref: 'Task',
-    localField:'_id',
+    localField: '_id',
     foreignField: 'owner'
 })
 
 userSchema.methods.toJSON = function () {
     const user = this
     const userObject = user.toObject()
+
     delete userObject.password
     delete userObject.tokens
+    delete userObject.avatar // No need to send back, wait storage
+
     return userObject
 }
-
 
 userSchema.methods.generateAuthToken = async function () {
     const user = this
     const token = jwt.sign({ _id: user._id.toString() }, 'thisismynewcourse')
-    
+
     user.tokens = user.tokens.concat({ token })
     await user.save()
 
@@ -110,7 +116,6 @@ userSchema.pre('remove', async function (next) {
     await Task.deleteMany({ owner: user._id })
     next()
 })
-
 
 const User = mongoose.model('User', userSchema)
 
